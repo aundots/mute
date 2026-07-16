@@ -7,6 +7,7 @@ import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.DiscoveredEndpoints
 import com.mute.shutter.camera.CameraMuteService
 import com.mute.shutter.camera.UsageAccessHelper
+import com.mute.shutter.shutter.ShutterSoundController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +35,7 @@ data class MainUiState(
     val isPaired: Boolean = false,
     val showAdvanced: Boolean = false,
     val needsUsageAccess: Boolean = false,
+    val statusMessage: String? = null,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -50,21 +52,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val interstitialEvents: SharedFlow<Unit> = _interstitialEvents.asSharedFlow()
 
     init {
-        _uiState.update {
-            it.copy(
-                isPaired = preferences.isPaired,
-                wlanIp = preferences.lastHost.orEmpty(),
-                connectPort = preferences.lastConnectPort.takeIf { p -> p > 0 }?.toString().orEmpty(),
-                needsUsageAccess = preferences.isPaired && !UsageAccessHelper.hasUsageAccess(app),
-                status = when {
-                    preferences.lastMuteValue == ShutterConstants.MUTED_VALUE -> ConnectionStatus.Muted
-                    preferences.isPaired -> ConnectionStatus.PairedNotConnected
-                    else -> ConnectionStatus.NotPaired
-                },
-            )
-        }
-        if (preferences.isPaired) {
-            startCameraWatcherIfNeeded()
+        restoreFromPreferences()
+        viewModelScope.launch {
+            syncMuteStatusIfConnected()
+            if (preferences.isPaired) {
+                startCameraWatcherIfNeeded()
+            }
         }
     }
 
@@ -76,13 +69,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onResume() {
         viewModelScope.launch {
+            if (!_uiState.value.isLoading) {
+                restoreFromPreferences()
+            }
             updateUsageAccessFlag()
-            if (!preferences.isPaired) {
-                refreshEndpoints()
+            if (!preferences.isPaired && !_uiState.value.isLoading) {
+                refreshEndpointsInternal()
+                syncMuteStatusIfConnected()
                 return@launch
             }
-            startCameraWatcherIfNeeded()
-            applyMuteInternal(silent = true)
+            if (preferences.isPaired) {
+                startCameraWatcherIfNeeded()
+                if (!_uiState.value.isLoading) {
+                    applyMuteInternal(silent = true)
+                }
+            }
         }
     }
 
@@ -104,6 +105,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onUsageAccessGranted() {
         updateUsageAccessFlag()
         startCameraWatcherIfNeeded()
+    }
+
+    private fun restoreFromPreferences() {
+        _uiState.update {
+            it.copy(
+                isPaired = preferences.isPaired,
+                wlanIp = preferences.lastHost.orEmpty(),
+                connectPort = preferences.lastConnectPort.takeIf { p -> p > 0 }?.toString().orEmpty(),
+                needsUsageAccess = preferences.isPaired && !UsageAccessHelper.hasUsageAccess(app),
+                status = when {
+                    preferences.lastMuteValue == ShutterConstants.MUTED_VALUE -> ConnectionStatus.Muted
+                    preferences.isPaired -> ConnectionStatus.PairedNotConnected
+                    else -> ConnectionStatus.NotPaired
+                },
+            )
+        }
     }
 
     private fun updateUsageAccessFlag() {
@@ -128,28 +145,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun runFirstTimeSetup() {
         val pairPort = _uiState.value.pairPort.toIntOrNull()
         val pin = _uiState.value.pin
-        if (pairPort == null || pairPort !in 1..65535 || pin.length != 6) return
-
-        _uiState.update { it.copy(isLoading = true, wlanIp = ShutterConstants.LOCALHOST) }
-
-        when (val pair = adb.pair(ShutterConstants.LOCALHOST, pairPort, pin)) {
-            is AdbResult.Failure -> {
-                _uiState.update { it.copy(isLoading = false) }
-                return
+        if (pairPort == null || pairPort !in 1..65535 || pin.length != 6) {
+            _uiState.update {
+                it.copy(statusMessage = app.getString(R.string.error_invalid_pairing_input))
             }
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                statusMessage = app.getString(R.string.status_applying),
+                status = ConnectionStatus.Connected,
+                wlanIp = ShutterConstants.LOCALHOST,
+            )
+        }
+
+        var pairError: String? = null
+        when (val pair = adb.pair(ShutterConstants.LOCALHOST, pairPort, pin)) {
+            is AdbResult.Failure -> pairError = pair.message
             is AdbResult.Success -> {
                 preferences.lastHost = ShutterConstants.LOCALHOST
-                _uiState.update { it.copy(isPaired = true, status = ConnectionStatus.PairedNotConnected) }
+                _uiState.update {
+                    it.copy(isPaired = true, status = ConnectionStatus.PairedNotConnected)
+                }
             }
         }
 
         delay(800)
-        runConnectAndMute(silent = false)
+        runConnectAndMute(silent = false, priorError = pairError)
     }
 
-    private suspend fun runConnectAndMute(silent: Boolean) {
+    private suspend fun runConnectAndMute(silent: Boolean, priorError: String? = null) {
         if (!silent) {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    status = ConnectionStatus.Connected,
+                    statusMessage = app.getString(R.string.status_applying),
+                )
+            }
         }
         refreshEndpointsInternal()
 
@@ -163,10 +198,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     return
                 }
                 if (preferences.isPaired) {
-                    finishMuted(silent)
+                    when (shutter.mute()) {
+                        is AdbResult.Success -> finishMuted(silent)
+                        is AdbResult.Failure -> finishMuted(silent)
+                    }
                     return
                 }
-                _uiState.update { it.copy(isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        status = ConnectionStatus.NotPaired,
+                        statusMessage = priorError ?: app.getString(R.string.error_connect_failed),
+                    )
+                }
                 return
             }
             is AdbResult.Success -> Unit
@@ -180,28 +224,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } else if (preferences.isPaired) {
                     finishMuted(silent)
                 } else {
-                    _uiState.update { it.copy(isLoading = false) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            status = ConnectionStatus.NotPaired,
+                            statusMessage = mute.message.ifBlank { app.getString(R.string.error_connect_failed) },
+                        )
+                    }
                 }
             }
         }
     }
 
+    private suspend fun syncMuteStatusIfConnected() {
+        if (preferences.lastMuteValue == ShutterConstants.MUTED_VALUE) {
+            _uiState.update {
+                it.copy(
+                    status = ConnectionStatus.Muted,
+                    isPaired = true,
+                    statusMessage = null,
+                )
+            }
+            return
+        }
+        when (adb.testConnection()) {
+            is AdbResult.Success -> {
+                if (handleAlreadyMuted()) {
+                    finishMuted(silent = true)
+                }
+            }
+            is AdbResult.Failure -> Unit
+        }
+    }
+
     private suspend fun handleAlreadyMuted(): Boolean {
         return when (val current = shutter.read()) {
-            is AdbResult.Success -> current.value.trim() == ShutterConstants.MUTED_VALUE
+            is AdbResult.Success -> ShutterSoundController.isMutedValue(current.value)
             is AdbResult.Failure -> false
         }
     }
 
     private fun finishMuted(silent: Boolean) {
+        preferences.isPaired = true
+        preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
         startCameraWatcherIfNeeded()
         updateUsageAccessFlag()
-        preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
         _uiState.update {
             it.copy(
                 isLoading = false,
                 status = ConnectionStatus.Muted,
                 isPaired = true,
+                statusMessage = null,
             )
         }
         if (!silent && BuildConfig.HAS_ADS) {

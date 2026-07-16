@@ -2,8 +2,7 @@
 <resources>
     <string name="app_name">카메라 셔터 무음 (무료)</string>
 
-    <!-- AdMob: 출시 전 AdMob 콘솔에서 실제 ID로 교체 -->
-    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
-    <string name="admob_banner_unit_id">ca-app-pub-3940256099942544/6300978111</string>
-    <string name="admob_interstitial_unit_id">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="admob_app_id">ca-app-pub-3585849238017368~4912762931</string>
+    <string name="admob_banner_unit_id">ca-app-pub-3585849238017368/9350469889</string>
+    <string name="admob_interstitial_unit_id">ca-app-pub-3585849238017368/5640279417</string>
 </resources>

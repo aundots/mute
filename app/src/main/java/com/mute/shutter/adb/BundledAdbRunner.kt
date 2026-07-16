@@ -78,11 +78,28 @@ class BundledAdbRunner(context: Context) {
         args: List<String>,
         timeoutSeconds: Long = 30,
     ): ProcessResult {
-        return try {
-            val adb = install.binary
-            val workDir = install.workDir
-            val command = listOf(adb.absolutePath) + args
+        val adb = install.binary
+        val workDir = install.workDir
+        val commands = listOf(
+            listOf(adb.absolutePath) + args,
+            listOf("/system/bin/linker64", adb.absolutePath) + args,
+        )
+        var last = ProcessResult(-1, "")
+        for (command in commands) {
+            last = runAdbCommand(command, workDir, timeoutSeconds)
+            val denied = last.output.contains("Permission denied", ignoreCase = true) ||
+                last.output.contains("error=13", ignoreCase = true)
+            if (!denied) return last
+        }
+        return last
+    }
 
+    private fun runAdbCommand(
+        command: List<String>,
+        workDir: File,
+        timeoutSeconds: Long,
+    ): ProcessResult {
+        return try {
             val processBuilder = ProcessBuilder(command)
                 .directory(workDir)
                 .redirectErrorStream(true)
@@ -92,7 +109,6 @@ class BundledAdbRunner(context: Context) {
             env["ADB_VENDOR_KEYS"] = homeDir.absolutePath
             env["TMPDIR"] = homeDir.absolutePath
             env["LD_LIBRARY_PATH"] = workDir.absolutePath
-            // Android 16+: mDNS 비활성 기기에서도 adb 자체 connect는 동작
             env["ADB_MDNS"] = "1"
             if (Build.VERSION.SDK_INT >= 36) {
                 env["ADB_MDNS_OPENSCREEN"] = "0"

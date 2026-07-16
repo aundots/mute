@@ -21,8 +21,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
@@ -58,6 +58,27 @@ fun PairingGuideScreen(
 
         StatusCard(state)
 
+        state.statusMessage?.let { message ->
+            val isError = !state.isLoading && state.status != ConnectionStatus.Muted
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+
+        if (state.status != ConnectionStatus.Muted) {
+            SetupGuideCard()
+        }
+
+        if (state.status == ConnectionStatus.Muted) {
+            SetupCompleteCard(needsUsageAccess = state.needsUsageAccess)
+        }
+
         if (state.needsUsageAccess) {
             OutlinedButton(onClick = onOpenUsageAccess, modifier = Modifier.fillMaxWidth()) {
                 Text("사용 통계 허용")
@@ -73,7 +94,7 @@ fun PairingGuideScreen(
             }
         }
 
-        if (!state.isPaired) {
+        if (state.status != ConnectionStatus.Muted) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -147,27 +168,127 @@ fun PairingGuideScreen(
 }
 
 @Composable
-private fun StatusCard(state: MainUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun SetupGuideCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = when (state.status) {
-                    ConnectionStatus.Muted -> "셔터음 꺼짐"
-                    ConnectionStatus.PairedNotConnected -> "페어링됨"
-                    ConnectionStatus.Connected -> "연결됨"
-                    ConnectionStatus.NotPaired -> "설정 필요"
-                },
+                text = stringResource(R.string.setup_guide_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            listOf(
+                R.string.setup_guide_step1,
+                R.string.setup_guide_step2,
+                R.string.setup_guide_step3,
+                R.string.setup_guide_step4,
+            ).forEach { stepRes ->
+                Text(
+                    text = stringResource(stepRes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusCard(state: MainUiState) {
+    val (titleRes, descRes, containerColor, contentColor) = when (state.status) {
+        ConnectionStatus.Muted -> StatusStyle(
+            titleRes = R.string.status_muted_title,
+            descRes = R.string.status_muted_desc,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        ConnectionStatus.PairedNotConnected -> StatusStyle(
+            titleRes = R.string.status_paired_title,
+            descRes = R.string.status_paired_desc,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+        ConnectionStatus.Connected -> StatusStyle(
+            titleRes = R.string.status_connected_title,
+            descRes = R.string.status_connected_desc,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+        ConnectionStatus.NotPaired -> StatusStyle(
+            titleRes = R.string.status_not_paired_title,
+            descRes = R.string.status_not_paired_desc,
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(titleRes),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = when (state.status) {
-                    ConnectionStatus.Muted -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.onSurface
-                },
+            )
+            Text(
+                text = stringResource(descRes),
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
 }
+
+@Composable
+private fun SetupCompleteCard(needsUsageAccess: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.setup_complete_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.setup_complete_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (needsUsageAccess) {
+                Text(
+                    text = stringResource(R.string.status_muted_usage_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private data class StatusStyle(
+    val titleRes: Int,
+    val descRes: Int,
+    val containerColor: Color,
+    val contentColor: Color,
+)

@@ -46,11 +46,17 @@ class InterstitialAdManager(private val activity: Activity) {
     }
 
     fun showIfReady() {
+        if (activity.isFinishing || activity.isDestroyed) return
         val ad = interstitialAd
         if (ad != null) {
             ad.show(activity)
         } else {
             preload()
         }
+    }
+
+    fun destroy() {
+        interstitialAd = null
+        isLoading = false
     }
 }

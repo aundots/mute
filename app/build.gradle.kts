@@ -20,13 +20,15 @@ android {
     defaultConfig {
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 9
+        versionName = "1.0.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
     }
+
+    ndkVersion = "28.0.13004108"
 
     signingConfigs {
         create("release") {
@@ -85,9 +87,21 @@ android {
 
     packaging {
         jniLibs {
+            // libadb.so를 nativeLibraryDir에 추출해 execve 가능하게 함 (Android 16 W^X)
             useLegacyPackaging = true
         }
     }
+}
+
+tasks.register<Exec>("patchNativeLibs16k") {
+    group = "build"
+    description = "Patch bundled native libs for 16 KB page size"
+    commandLine("python", rootProject.file("scripts/patch_elf_16kb.py"))
+    args(rootProject.file("app/src/main/jniLibs/arm64-v8a/libadb.so"))
+}
+
+tasks.named("preBuild") {
+    dependsOn("patchNativeLibs16k")
 }
 
 dependencies {

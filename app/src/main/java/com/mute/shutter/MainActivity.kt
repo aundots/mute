@@ -101,6 +101,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        if (BuildConfig.HAS_ADS) {
+            interstitialAdManager?.destroy()
+            interstitialAdManager = null
+        }
+        super.onDestroy()
+    }
+
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)

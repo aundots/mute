@@ -3,6 +3,8 @@ package com.mute.shutter.ads
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -18,6 +20,7 @@ import com.mute.shutter.R
 fun BannerAd(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val adViewRef = remember { mutableStateOf<AdView?>(null) }
 
     AndroidView(
         modifier = modifier.fillMaxWidth(),
@@ -26,24 +29,38 @@ fun BannerAd(modifier: Modifier = Modifier) {
                 setAdSize(AdSize.BANNER)
                 adUnitId = context.getString(R.string.admob_banner_unit_id)
                 loadAd(AdRequest.Builder().build())
+                adViewRef.value = this
             }
         },
         update = { adView ->
             adView.adUnitId = context.getString(R.string.admob_banner_unit_id)
         },
+        onRelease = { adView ->
+            adView.destroy()
+            if (adViewRef.value === adView) {
+                adViewRef.value = null
+            }
+        },
     )
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            val adView = adViewRef.value ?: return@LifecycleEventObserver
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> Unit
-                Lifecycle.Event.ON_DESTROY -> Unit
+                Lifecycle.Event.ON_RESUME -> adView.resume()
+                Lifecycle.Event.ON_PAUSE -> adView.pause()
+                Lifecycle.Event.ON_DESTROY -> {
+                    adView.destroy()
+                    adViewRef.value = null
+                }
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            adViewRef.value?.destroy()
+            adViewRef.value = null
         }
     }
 }

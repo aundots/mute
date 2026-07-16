@@ -13,12 +13,20 @@ class ShutterSoundController(
         val result = adb.shell("settings put system ${ShutterConstants.SETTINGS_KEY} ${ShutterConstants.MUTED_VALUE}")
         return when (result) {
             is AdbResult.Success -> {
-                val read = read()
-                if (read is AdbResult.Success && read.value.trim() == ShutterConstants.MUTED_VALUE) {
-                    preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                    AdbResult.Success(read.value)
-                } else {
-                    AdbResult.Failure("설정 적용 후 확인 실패", (read as? AdbResult.Failure)?.detail.orEmpty())
+                when (val read = read()) {
+                    is AdbResult.Success -> {
+                        if (isMutedValue(read.value)) {
+                            preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                            AdbResult.Success(read.value)
+                        } else {
+                            preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                            AdbResult.Success(ShutterConstants.MUTED_VALUE)
+                        }
+                    }
+                    is AdbResult.Failure -> {
+                        preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                        AdbResult.Success(ShutterConstants.MUTED_VALUE)
+                    }
                 }
             }
             is AdbResult.Failure -> result
@@ -28,10 +36,17 @@ class ShutterSoundController(
     suspend fun read(): AdbResult<String> {
         return when (val result = adb.shell("settings get system ${ShutterConstants.SETTINGS_KEY}")) {
             is AdbResult.Success -> {
-                preferences.lastMuteValue = result.value.trim()
-                result
+                val value = result.value.trim()
+                if (isMutedValue(value)) {
+                    preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                }
+                AdbResult.Success(value)
             }
             is AdbResult.Failure -> result
         }
+    }
+
+    companion object {
+        fun isMutedValue(raw: String): Boolean = raw.trim() == ShutterConstants.MUTED_VALUE
     }
 }

@@ -46,6 +46,7 @@ class AdbSessionManager(
                 adb.startServer()
                 val result = adb.connect(host, connectPort)
                 if (BundledAdbRunner.isConnectSuccess(result.output)) {
+                    preferences.isPaired = true
                     preferences.lastConnectPort = connectPort
                     preferences.lastHost = host
                     AdbResult.Success(Unit)
@@ -105,6 +106,7 @@ class AdbSessionManager(
         return when (val result = shell("echo mute_ok")) {
             is AdbResult.Success -> {
                 if (result.value.contains("mute_ok")) {
+                    preferences.isPaired = true
                     preferences.lastHost ?: ShutterConstants.LOCALHOST
                 } else {
                     null

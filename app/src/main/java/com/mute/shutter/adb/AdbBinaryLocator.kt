@@ -1,16 +1,15 @@
 package com.mute.shutter.adb
 
 import android.content.Context
-import android.os.Build
 import java.io.File
-import java.util.zip.ZipFile
 
 /**
- * Android 16: adb 바이너리는 nativeLibraryDir에서 실행해야 합니다.
- * W^X 정책상 filesDir 직접 exec는 크래시를 유발할 수 있어 codeCache를 최후 fallback으로 씁니다.
+ * Android 10+ W^X: adb는 [nativeLibraryDir]에 추출된 libadb.so만 직접 실행 가능.
+ * build.gradle에서 useLegacyPackaging=true + manifest extractNativeLibs=true 필수.
  */
 object AdbBinaryLocator {
     private const val LIB_NAME = "libadb.so"
+    private const val MIN_BINARY_BYTES = 1_000_000L
 
     data class Install(
         val binary: File,
@@ -21,29 +20,18 @@ object AdbBinaryLocator {
         val app = context.applicationContext
         val nativeDir = File(app.applicationInfo.nativeLibraryDir)
         val nativeBinary = File(nativeDir, LIB_NAME)
-        if (nativeBinary.exists() && nativeBinary.length() > 1_000_000) {
+        if (nativeBinary.exists() && nativeBinary.length() >= MIN_BINARY_BYTES) {
             return Install(nativeBinary, nativeDir)
         }
 
-        // nativeLibraryDir에 없으면 APK → codeCache (Android 10+ 실행 가능 영역)
-        val fallbackDir = File(app.codeCacheDir, "adb-bin").apply { mkdirs() }
-        val fallback = File(fallbackDir, LIB_NAME)
-        if (!fallback.exists() || fallback.length() < 1_000_000) {
-            extractFromApk(app, fallback)
-        }
-        fallback.setExecutable(true, false)
-        return Install(fallback, fallbackDir)
-    }
-
-    private fun extractFromApk(context: Context, dest: File) {
-        val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
-        val entryName = "lib/$abi/$LIB_NAME"
-        ZipFile(context.applicationInfo.sourceDir).use { zip ->
-            val entry = zip.getEntry(entryName)
-                ?: error("$LIB_NAME not found in APK ($entryName)")
-            zip.getInputStream(entry).use { input ->
-                dest.outputStream().use { output -> input.copyTo(output) }
-            }
-        }
+        error(
+            buildString {
+                append("ADB 바이너리를 실행할 수 없습니다. ")
+                append("앱을 완전히 삭제한 뒤 다시 설치해주세요. ")
+                append("(경로: ${nativeBinary.absolutePath}, ")
+                append("존재=${nativeBinary.exists()}, ")
+                append("크기=${nativeBinary.length()})")
+            },
+        )
     }
 }
