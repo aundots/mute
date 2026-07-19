@@ -1,5 +1,6 @@
 package com.mute.shutter.shutter
 
+import android.util.Log
 import com.mute.shutter.ShutterConstants
 import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.AdbSessionManager
@@ -14,25 +15,22 @@ class ShutterSoundController(
             "settings put system ${ShutterConstants.SETTINGS_KEY} ${ShutterConstants.MUTED_VALUE}",
             "settings put global ${ShutterConstants.SETTINGS_KEY} ${ShutterConstants.MUTED_VALUE}",
             "settings put global csc_pref_camera_forced_shuttersound_key ${ShutterConstants.MUTED_VALUE}",
+            "settings put global camera_sound 0",
+            "settings put global camera_shutter_sound 0",
+            "settings put secure sound_effects_enabled 0",
+            "settings put global com.samsung.android.app.camera_shuttersound 0",
+            "settings put global com.sec.android.app.camera_shuttersound 0",
         )
 
-        var lastFailure: AdbResult.Failure? = null
         for (command in commands) {
-            val result = adb.shell(command)
-            if (result is AdbResult.Failure) {
-                lastFailure = result
-            }
+            adb.shell(command)
         }
 
+        logSettings()
         return when (val read = read()) {
             is AdbResult.Success -> {
-                if (isMutedValue(read.value)) {
-                    preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                    AdbResult.Success(read.value)
-                } else {
-                    preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                    AdbResult.Success(ShutterConstants.MUTED_VALUE)
-                }
+                preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                AdbResult.Success(read.value)
             }
             is AdbResult.Failure -> {
                 preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
@@ -54,7 +52,22 @@ class ShutterSoundController(
         }
     }
 
+    private suspend fun logSettings() {
+        listOf(
+            "settings get system ${ShutterConstants.SETTINGS_KEY}",
+            "settings get global ${ShutterConstants.SETTINGS_KEY}",
+            "settings get global camera_sound",
+            "settings get global camera_shutter_sound",
+        ).forEach { cmd ->
+            when (val result = adb.shell(cmd)) {
+                is AdbResult.Success -> Log.d(TAG, "$cmd = ${result.value.trim()}")
+                is AdbResult.Failure -> Log.d(TAG, "$cmd failed")
+            }
+        }
+    }
+
     companion object {
+        private const val TAG = "ShutterSound"
         fun isMutedValue(raw: String): Boolean = raw.trim() == ShutterConstants.MUTED_VALUE
     }
 }

@@ -43,4 +43,14 @@ object AudioShellCommands {
             else -> trimmed.toIntOrNull()
         }
     }
+
+    fun getSystemSettings(): String = "settings get system csc_pref_camera_forced_shuttersound_key"
+
+    fun getGlobalSettings(): String = "settings get global csc_pref_camera_forced_shuttersound_key"
+
+    fun getSecureSettings(): String = "settings get secure sound_effects_enabled"
+
+    fun disableCameraAudioFocus(): String = "cmd audio get-ringer-mode"
+
+    fun muteAllAudio(): String = "am broadcast -a android.media.VOLUME_CHANGED_ACTION --ei android.media.EXTRA_VOLUME_STREAM_TYPE 1 --ei android.media.EXTRA_VOLUME_STREAM_VALUE 0"
 }

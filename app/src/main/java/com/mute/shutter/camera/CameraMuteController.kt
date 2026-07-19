@@ -1,5 +1,6 @@
 package com.mute.shutter.camera
 
+import android.util.Log
 import com.mute.shutter.ShutterConstants
 import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.AdbSessionManager
@@ -34,6 +35,7 @@ class CameraMuteController(private val adb: AdbSessionManager) {
             }
         }
 
+        logSettings()
         lastError = anyFailure
         muted = true
         return if (anyFailure == null) AdbResult.Success(Unit) else AdbResult.Failure("일부 무음 명령 실패", anyFailure)
@@ -74,10 +76,25 @@ class CameraMuteController(private val adb: AdbSessionManager) {
         }
     }
 
+    private suspend fun logSettings() {
+        when (val sys = adb.shell(AudioShellCommands.getSystemSettings())) {
+            is AdbResult.Success -> Log.d(TAG, "system key: ${sys.value.trim()}")
+            is AdbResult.Failure -> Log.d(TAG, "system key read failed")
+        }
+        when (val glb = adb.shell(AudioShellCommands.getGlobalSettings())) {
+            is AdbResult.Success -> Log.d(TAG, "global key: ${glb.value.trim()}")
+            is AdbResult.Failure -> Log.d(TAG, "global key read failed")
+        }
+    }
+
     private fun muteCommands(): List<String> = buildList {
         add(AudioShellCommands.setRingerModeSilent())
+        add("settings put system ${ShutterConstants.SETTINGS_KEY} 0")
+        add("settings put global ${ShutterConstants.SETTINGS_KEY} 0")
         add("settings put global csc_pref_camera_forced_shuttersound_key 0")
         add("settings put secure sound_effects_enabled 0")
+        add("settings put global camera_sound 0")
+        add("settings put global camera_shutter_sound 0")
         for (stream in muteStreams) {
             add(AudioShellCommands.setStreamVolumeLegacy(stream, 0))
             add(AudioShellCommands.setStreamVolume(stream, 0))
@@ -85,6 +102,7 @@ class CameraMuteController(private val adb: AdbSessionManager) {
     }
 
     companion object {
+        private const val TAG = "CameraMute"
         private val muteStreams = listOf(
             ShutterConstants.STREAM_SYSTEM,
             ShutterConstants.STREAM_SYSTEM_ENFORCED,
