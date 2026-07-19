@@ -23,22 +23,34 @@ class ShutterSoundController(
         )
 
         DebugLogger.log("▶ 셔터음 설정 명령 실행 시작 (${commands.size}개)")
+        var anySuccess = false
         for (command in commands) {
             when (val result = adb.shell(command)) {
-                is AdbResult.Success -> DebugLogger.logSuccess("$command → OK")
+                is AdbResult.Success -> {
+                    anySuccess = true
+                    DebugLogger.logSuccess("$command → OK")
+                }
                 is AdbResult.Failure -> DebugLogger.logError("$command → 실패: ${result.message} ${result.detail}")
             }
         }
 
         logSettings()
+
+        // settings get으로 실제 저장된 값이 0인지 검증 — 이게 진짜 성공 판정
         return when (val read = read()) {
             is AdbResult.Success -> {
-                preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                AdbResult.Success(read.value)
+                if (isMutedValue(read.value)) {
+                    preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                    DebugLogger.logSuccess("셔터음 설정 확정 (값=0)")
+                    AdbResult.Success(read.value)
+                } else {
+                    DebugLogger.logError("설정이 적용되지 않음 (읽은 값='${read.value}') — 기기 연결 확인 필요")
+                    AdbResult.Failure("설정 미적용", read.value)
+                }
             }
             is AdbResult.Failure -> {
-                preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                AdbResult.Success(ShutterConstants.MUTED_VALUE)
+                DebugLogger.logError("설정 확인 실패: ${read.message} — ADB 연결 안 됨")
+                AdbResult.Failure("기기 연결 안 됨", read.detail.ifBlank { read.message })
             }
         }
     }

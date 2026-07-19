@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.DiscoveredEndpoints
 import com.mute.shutter.camera.CameraMuteService
+import com.mute.shutter.camera.DndAccessHelper
 import com.mute.shutter.camera.UsageAccessHelper
 import com.mute.shutter.debug.DebugLogger
 import com.mute.shutter.shutter.ShutterSoundController
@@ -36,6 +37,7 @@ data class MainUiState(
     val isPaired: Boolean = false,
     val showAdvanced: Boolean = false,
     val needsUsageAccess: Boolean = false,
+    val needsDndAccess: Boolean = false,
     val statusMessage: String? = null,
 )
 
@@ -115,6 +117,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 wlanIp = preferences.lastHost.orEmpty(),
                 connectPort = preferences.lastConnectPort.takeIf { p -> p > 0 }?.toString().orEmpty(),
                 needsUsageAccess = preferences.isPaired && !UsageAccessHelper.hasUsageAccess(app),
+                needsDndAccess = !DndAccessHelper.hasDndAccess(app),
                 status = when {
                     preferences.lastMuteValue == ShutterConstants.MUTED_VALUE -> ConnectionStatus.Muted
                     preferences.isPaired -> ConnectionStatus.PairedNotConnected
@@ -126,7 +129,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun updateUsageAccessFlag() {
         _uiState.update {
-            it.copy(needsUsageAccess = preferences.isPaired && !UsageAccessHelper.hasUsageAccess(app))
+            it.copy(
+                needsUsageAccess = preferences.isPaired && !UsageAccessHelper.hasUsageAccess(app),
+                needsDndAccess = !DndAccessHelper.hasDndAccess(app),
+            )
         }
     }
 
@@ -200,20 +206,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     finishMuted(silent)
                     return
                 }
-                if (preferences.isPaired) {
-                    when (shutter.mute()) {
-                        is AdbResult.Success -> finishMuted(silent)
-                        is AdbResult.Failure -> finishMuted(silent)
-                    }
-                    return
-                }
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        status = ConnectionStatus.NotPaired,
-                        statusMessage = priorError ?: app.getString(R.string.error_connect_failed),
-                    )
-                }
+                failConnection(silent, priorError ?: app.getString(R.string.error_connect_failed))
                 return
             }
             is AdbResult.Success -> DebugLogger.logSuccess("ADB 연결 성공")
@@ -224,18 +217,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             is AdbResult.Failure -> {
                 if (handleAlreadyMuted()) {
                     finishMuted(silent)
-                } else if (preferences.isPaired) {
-                    finishMuted(silent)
                 } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            status = ConnectionStatus.NotPaired,
-                            statusMessage = mute.message.ifBlank { app.getString(R.string.error_connect_failed) },
-                        )
-                    }
+                    failConnection(
+                        silent,
+                        mute.message.ifBlank { app.getString(R.string.error_connect_failed) },
+                    )
                 }
             }
+        }
+    }
+
+    /** ADB 연결·설정 적용이 실제로 실패했을 때. isPaired여도 무음 적용됐다고 거짓 표시하지 않는다 */
+    private fun failConnection(silent: Boolean, message: String) {
+        DebugLogger.logError("무음 적용 실패 (silent=$silent): $message")
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                status = if (preferences.isPaired) ConnectionStatus.PairedNotConnected else ConnectionStatus.NotPaired,
+                statusMessage = message,
+            )
         }
     }
 

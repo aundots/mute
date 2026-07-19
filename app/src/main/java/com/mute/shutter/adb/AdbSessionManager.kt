@@ -120,15 +120,29 @@ class AdbSessionManager(
         withContext(Dispatchers.IO) {
             try {
                 val result = adb.shell(command)
-                if (result.success || result.output.isNotBlank()) {
-                    AdbResult.Success(result.output.trim())
-                } else {
-                    AdbResult.Failure("shell 실패", result.output)
+                val output = result.output.trim()
+                when {
+                    isAdbError(output) -> AdbResult.Failure("기기 연결 안 됨", output)
+                    result.success || output.isNotBlank() -> AdbResult.Success(output)
+                    else -> AdbResult.Failure("shell 실패", output)
                 }
             } catch (e: Exception) {
                 AdbResult.Failure(e.message ?: "shell 오류")
             }
         }
+    }
+
+    /** adb 데몬이 명령 미실행 시 stdout으로 뱉는 오류. 이걸 성공으로 착각하면 안 됨 */
+    private fun isAdbError(output: String): Boolean {
+        val lower = output.lowercase()
+        return "no devices/emulators found" in lower ||
+            "device offline" in lower ||
+            "device unauthorized" in lower ||
+            "failed to connect" in lower ||
+            "cannot connect" in lower ||
+            "no such device" in lower ||
+            lower.startsWith("error:") ||
+            lower.startsWith("adb:")
     }
 
     /** IP와 포트를 각각 감지 — 하나만 찾아도 UI에 반영 */

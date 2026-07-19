@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.mute.shutter.ads.BannerAd
 import com.mute.shutter.ads.InterstitialAdManager
+import com.mute.shutter.camera.DndAccessHelper
 import com.mute.shutter.camera.UsageAccessHelper
 import com.mute.shutter.ui.DebugLogScreen
 import com.mute.shutter.ui.PairingGuideScreen
@@ -94,6 +95,9 @@ class MainActivity : ComponentActivity() {
                                     onResetPairing = viewModel::resetPairing,
                                     onOpenUsageAccess = {
                                         UsageAccessHelper.openUsageAccessSettings(this@MainActivity)
+                                    },
+                                    onOpenDndAccess = {
+                                        DndAccessHelper.openDndAccessSettings(this@MainActivity)
                                     },
                                     onShowDebugLog = { showDebug = true },
                                 )

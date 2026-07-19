@@ -41,17 +41,21 @@ class DirectAudioMuter(private val context: Context) {
                 }
             }
 
-            try {
-                val oldMode = audioManager.ringerMode
-                audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
-                val newMode = audioManager.ringerMode
-                if (newMode == AudioManager.RINGER_MODE_SILENT) {
-                    DebugLogger.logSuccess("벨소리 모드 → SILENT 설정됨")
-                } else {
-                    DebugLogger.logError("벨소리 모드 설정 실패 (이전: ${ringerModeToString(oldMode)}, 현재: ${ringerModeToString(newMode)})")
+            if (!DndAccessHelper.hasDndAccess(context)) {
+                DebugLogger.logError("방해 금지 모드 접근 권한 없음 — 벨소리 모드 변경 건너뜀 (설정에서 권한 허용 필요)")
+            } else {
+                try {
+                    val oldMode = audioManager.ringerMode
+                    audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+                    val newMode = audioManager.ringerMode
+                    if (newMode == AudioManager.RINGER_MODE_SILENT) {
+                        DebugLogger.logSuccess("벨소리 모드 → SILENT 설정됨")
+                    } else {
+                        DebugLogger.logError("벨소리 모드 설정 실패 (이전: ${ringerModeToString(oldMode)}, 현재: ${ringerModeToString(newMode)})")
+                    }
+                } catch (e: Exception) {
+                    DebugLogger.logError("벨소리 모드 설정 실패", e)
                 }
-            } catch (e: Exception) {
-                DebugLogger.logError("벨소리 모드 설정 실패", e)
             }
 
             DebugLogger.logSuccess("DirectAudioMuter 음소거 완료")
@@ -86,18 +90,26 @@ class DirectAudioMuter(private val context: Context) {
             }
             savedVolumes.clear()
 
-            when (savedRingerMode) {
-                AudioManager.RINGER_MODE_SILENT -> {
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
-                    DebugLogger.logSuccess("벨소리 모드 → SILENT 복구")
-                }
-                AudioManager.RINGER_MODE_VIBRATE -> {
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
-                    DebugLogger.logSuccess("벨소리 모드 → VIBRATE 복구")
-                }
-                else -> {
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
-                    DebugLogger.logSuccess("벨소리 모드 → NORMAL 복구")
+            if (!DndAccessHelper.hasDndAccess(context)) {
+                DebugLogger.logError("방해 금지 모드 접근 권한 없음 — 벨소리 모드 복구 건너뜀")
+            } else {
+                try {
+                    when (savedRingerMode) {
+                        AudioManager.RINGER_MODE_SILENT -> {
+                            audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+                            DebugLogger.logSuccess("벨소리 모드 → SILENT 복구")
+                        }
+                        AudioManager.RINGER_MODE_VIBRATE -> {
+                            audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+                            DebugLogger.logSuccess("벨소리 모드 → VIBRATE 복구")
+                        }
+                        else -> {
+                            audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                            DebugLogger.logSuccess("벨소리 모드 → NORMAL 복구")
+                        }
+                    }
+                } catch (e: Exception) {
+                    DebugLogger.logError("벨소리 모드 복구 실패", e)
                 }
             }
             savedRingerMode = null

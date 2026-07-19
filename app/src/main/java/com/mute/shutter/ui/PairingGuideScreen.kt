@@ -42,6 +42,7 @@ fun PairingGuideScreen(
     onToggleAdvanced: () -> Unit,
     onResetPairing: () -> Unit,
     onOpenUsageAccess: () -> Unit,
+    onOpenDndAccess: () -> Unit = {},
     onShowDebugLog: () -> Unit = {},
 ) {
     Column(
@@ -83,6 +84,17 @@ fun PairingGuideScreen(
         if (state.needsUsageAccess) {
             OutlinedButton(onClick = onOpenUsageAccess, modifier = Modifier.fillMaxWidth()) {
                 Text("사용 통계 허용")
+            }
+        }
+
+        if (state.needsDndAccess) {
+            Text(
+                text = "벨소리 무음 전환에는 「방해 금지 모드 접근」 권한이 필요합니다",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+            OutlinedButton(onClick = onOpenDndAccess, modifier = Modifier.fillMaxWidth()) {
+                Text("방해 금지 모드 접근 허용")
             }
         }
 
