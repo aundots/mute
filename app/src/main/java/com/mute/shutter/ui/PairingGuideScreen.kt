@@ -108,30 +108,58 @@ fun PairingGuideScreen(
         }
 
         if (state.status != ConnectionStatus.Muted) {
+            if (!state.isPaired) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "① 무선 디버깅 → 「페어링 코드로 기기 페어링」 팝업의 값",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        OutlinedTextField(
+                            value = state.pairPort,
+                            onValueChange = onPairPortChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("페어링 포트") },
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = state.pin,
+                            onValueChange = onPinChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("6자리 PIN") },
+                            singleLine = true,
+                        )
+                    }
+                }
+            }
+
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = state.pairPort,
-                        onValueChange = onPairPortChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("페어링 포트") },
-                        singleLine = true,
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "② 무선 디버깅 메인 화면의 「IP 주소 및 포트」 값 (페어링 포트와 다름, 재부팅 시마다 바뀜)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     OutlinedTextField(
-                        value = state.pin,
-                        onValueChange = onPinChange,
+                        value = state.connectPort,
+                        onValueChange = onConnectPortChange,
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("6자리 PIN") },
+                        label = { Text("연결 포트") },
                         singleLine = true,
                     )
                 }
             }
+
             Button(
                 onClick = onApplyMute,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 enabled = !state.isLoading,
             ) {
-                Text("처음 설정하기", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = if (state.isPaired) "다시 연결" else "처음 설정하기",
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
         } else {
             Button(
@@ -159,13 +187,20 @@ fun PairingGuideScreen(
                     label = { Text("IP (수동)") },
                     singleLine = true,
                 )
-                OutlinedTextField(
-                    value = state.connectPort,
-                    onValueChange = onConnectPortChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("연결 포트 (수동)") },
-                    singleLine = true,
-                )
+                if (state.status == ConnectionStatus.Muted) {
+                    Text(
+                        text = "연결 포트: 무선 디버깅 메인 화면 「IP 주소 및 포트」 값 (재부팅 시마다 바뀜)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = state.connectPort,
+                        onValueChange = onConnectPortChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("연결 포트") },
+                        singleLine = true,
+                    )
+                }
                 OutlinedButton(
                     onClick = onResetPairing,
                     modifier = Modifier.fillMaxWidth(),
