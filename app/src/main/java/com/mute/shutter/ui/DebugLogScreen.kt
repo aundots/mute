@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mute.shutter.debug.DebugLogger
@@ -94,9 +93,7 @@ fun DebugLogScreen(
             ) {
                 Button(
                     onClick = {
-                        val clipboard = android.content.ClipboardManager::class.java
-                        val text = logs
-                        val clip = android.content.ClipData.newPlainText("로그", text)
+                        // 클립보드 복사 기능은 Activity에서 구현
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {

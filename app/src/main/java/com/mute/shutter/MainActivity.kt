@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.mute.shutter.ads.BannerAd
@@ -67,7 +68,7 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .safeDrawingPadding(),
                 ) {
-                    var showDebug by androidx.compose.runtime.mutableStateOf(false)
+                    var showDebug by androidx.compose.runtime.remember { mutableStateOf(false) }
 
                     if (showDebug) {
                         DebugLogScreen(

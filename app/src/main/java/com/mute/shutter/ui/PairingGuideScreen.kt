@@ -164,6 +164,13 @@ fun PairingGuideScreen(
             }
         }
 
+        TextButton(
+            onClick = onShowDebugLog,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("🐛 디버그 로그 보기")
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
@@ -283,14 +290,6 @@ private fun SetupCompleteCard(needsUsageAccess: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(
-            onClick = onShowDebugLog,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("🐛 디버그 로그 보기")
         }
     }
 }
