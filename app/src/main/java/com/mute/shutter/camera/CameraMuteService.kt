@@ -36,6 +36,7 @@ class CameraMuteService : Service() {
     private var cameraManager: CameraManager? = null
     private var callbackThread: HandlerThread? = null
     private var controller: CameraMuteController? = null
+    private var directMuter: DirectAudioMuter? = null
 
     private val availabilityCallback = object : CameraManager.AvailabilityCallback() {
         override fun onCameraUnavailable(cameraId: String) {
@@ -60,6 +61,7 @@ class CameraMuteService : Service() {
         super.onCreate()
         createChannel()
         controller = CameraMuteController((application as MuteApplication).adb)
+        directMuter = DirectAudioMuter(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -97,15 +99,16 @@ class CameraMuteService : Service() {
     private fun muteNow() {
         val app = application as MuteApplication
         val ctrl = controller ?: return
+        val muter = directMuter ?: return
         scope.launch {
             muteLock.withLock {
-                app.adb.testConnection()
                 val isCamera = ForegroundAppReader.isCameraForeground(app.adb)
                     ?: CameraForegroundDetector(this@CameraMuteService).getForegroundCameraPackage() != null
                 if (!isCamera) {
                     synchronized(activeCameraIds) { activeCameraIds.clear() }
                     return@withLock
                 }
+                muter.muteNow()
                 ctrl.muteForCamera()
             }
         }
@@ -113,9 +116,11 @@ class CameraMuteService : Service() {
 
     private fun restoreNow() {
         val ctrl = controller ?: return
+        val muter = directMuter ?: return
         scope.launch {
             muteLock.withLock {
                 ctrl.restoreAfterCamera()
+                muter.restoreNow()
             }
         }
     }
