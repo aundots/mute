@@ -14,6 +14,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.mute.shutter.MuteApplication
 import com.mute.shutter.R
+import com.mute.shutter.debug.DebugLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,25 +41,39 @@ class CameraMuteService : Service() {
 
     private val availabilityCallback = object : CameraManager.AvailabilityCallback() {
         override fun onCameraUnavailable(cameraId: String) {
+            DebugLogger.log("📷 카메라 사용 중: $cameraId")
             val wasEmpty = synchronized(activeCameraIds) {
                 val empty = activeCameraIds.isEmpty()
                 activeCameraIds.add(cameraId)
                 empty
             }
-            if (wasEmpty) muteNow()
+            if (wasEmpty) {
+                DebugLogger.log("→ 첫 번째 카메라 감지, 음소거 시작")
+                muteNow()
+            } else {
+                DebugLogger.log("→ 추가 카메라 감지, 이미 음소거됨")
+            }
         }
 
         override fun onCameraAvailable(cameraId: String) {
+            DebugLogger.log("📷 카메라 종료: $cameraId")
             val nowEmpty = synchronized(activeCameraIds) {
                 activeCameraIds.remove(cameraId)
                 activeCameraIds.isEmpty()
             }
-            if (nowEmpty) restoreNow()
+            if (nowEmpty) {
+                DebugLogger.log("→ 모든 카메라 종료, 음량 복구 시작")
+                restoreNow()
+            } else {
+                DebugLogger.log("→ 다른 카메라 실행 중, 음소거 유지")
+            }
         }
     }
 
     override fun onCreate() {
         super.onCreate()
+        DebugLogger.init(this)
+        DebugLogger.logSuccess("CameraMuteService 생성됨")
         createChannel()
         controller = CameraMuteController((application as MuteApplication).adb)
         directMuter = DirectAudioMuter(this)
@@ -102,14 +117,23 @@ class CameraMuteService : Service() {
         val muter = directMuter ?: return
         scope.launch {
             muteLock.withLock {
+                DebugLogger.log("🔒 뮤트락 획득, 카메라 앱 확인 중...")
                 val isCamera = ForegroundAppReader.isCameraForeground(app.adb)
                     ?: CameraForegroundDetector(this@CameraMuteService).getForegroundCameraPackage() != null
+                DebugLogger.logInfo("카메라 앱 확인", if (isCamera) "YES" else "NO")
+
                 if (!isCamera) {
+                    DebugLogger.log("⚠️ 카메라 앱이 포그라운드에 없음, 작업 취소")
                     synchronized(activeCameraIds) { activeCameraIds.clear() }
                     return@withLock
                 }
+
+                DebugLogger.log("▶ DirectAudioMuter 실행")
                 muter.muteNow()
+
+                DebugLogger.log("▶ ADB 음소거 명령어 실행")
                 ctrl.muteForCamera()
+                DebugLogger.logSuccess("음소거 작업 완료")
             }
         }
     }
@@ -119,8 +143,13 @@ class CameraMuteService : Service() {
         val muter = directMuter ?: return
         scope.launch {
             muteLock.withLock {
+                DebugLogger.log("🔒 복구락 획득")
+                DebugLogger.log("▶ ADB 복구 명령어 실행")
                 ctrl.restoreAfterCamera()
+
+                DebugLogger.log("▶ DirectAudioMuter 복구 실행")
                 muter.restoreNow()
+                DebugLogger.logSuccess("복구 작업 완료")
             }
         }
     }

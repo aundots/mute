@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
@@ -21,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import com.mute.shutter.ads.BannerAd
 import com.mute.shutter.ads.InterstitialAdManager
 import com.mute.shutter.camera.UsageAccessHelper
+import com.mute.shutter.ui.DebugLogScreen
 import com.mute.shutter.ui.PairingGuideScreen
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -29,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var pendingAction: (() -> Unit)? = null
     private var interstitialAdManager: InterstitialAdManager? = null
+    private var showDebugLog = false
 
     private val nearbyWifiPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -64,26 +67,39 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .safeDrawingPadding(),
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        val state by viewModel.uiState.collectAsState()
-                        Box(modifier = Modifier.weight(1f)) {
-                            PairingGuideScreen(
-                                modifier = Modifier.fillMaxSize(),
-                                state = state,
-                                onPairPortChange = viewModel::updatePairPort,
-                                onPinChange = viewModel::updatePin,
-                                onConnectPortChange = viewModel::updateConnectPort,
-                                onWlanIpChange = viewModel::updateWlanIp,
-                                onApplyMute = { runWithNetworkPermission(viewModel::applyMute) },
-                                onToggleAdvanced = viewModel::toggleAdvanced,
-                                onResetPairing = viewModel::resetPairing,
-                                onOpenUsageAccess = {
-                                    UsageAccessHelper.openUsageAccessSettings(this@MainActivity)
-                                },
-                            )
-                        }
-                        if (BuildConfig.HAS_ADS) {
-                            BannerAd()
+                    var showDebug by androidx.compose.runtime.mutableStateOf(false)
+
+                    if (showDebug) {
+                        DebugLogScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            onBack = { showDebug = false }
+                        )
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            val state by viewModel.uiState.collectAsState()
+                            Box(modifier = Modifier.weight(1f)) {
+                                PairingGuideScreen(
+                                    modifier = Modifier.fillMaxSize(),
+                                    state = state,
+                                    onPairPortChange = viewModel::updatePairPort,
+                                    onPinChange = viewModel::updatePin,
+                                    onConnectPortChange = viewModel::updateConnectPort,
+                                    onWlanIpChange = viewModel::updateWlanIp,
+                                    onApplyMute = { runWithNetworkPermission(viewModel::applyMute) },
+                                    onToggleAdvanced = {
+                                        viewModel.toggleAdvanced()
+                                        showDebug = false
+                                    },
+                                    onResetPairing = viewModel::resetPairing,
+                                    onOpenUsageAccess = {
+                                        UsageAccessHelper.openUsageAccessSettings(this@MainActivity)
+                                    },
+                                    onShowDebugLog = { showDebug = true },
+                                )
+                            }
+                            if (BuildConfig.HAS_ADS) {
+                                BannerAd()
+                            }
                         }
                     }
                 }

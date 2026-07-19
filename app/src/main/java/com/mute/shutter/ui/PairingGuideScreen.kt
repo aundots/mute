@@ -42,6 +42,7 @@ fun PairingGuideScreen(
     onToggleAdvanced: () -> Unit,
     onResetPairing: () -> Unit,
     onOpenUsageAccess: () -> Unit,
+    onShowDebugLog: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -282,6 +283,14 @@ private fun SetupCompleteCard(needsUsageAccess: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(
+            onClick = onShowDebugLog,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("🐛 디버그 로그 보기")
         }
     }
 }
