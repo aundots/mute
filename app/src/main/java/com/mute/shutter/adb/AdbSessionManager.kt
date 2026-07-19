@@ -28,6 +28,7 @@ class AdbSessionManager(
             try {
                 adb.startServer()
                 val result = adb.pair(host, pairPort, pin)
+                DebugLogger.log("adb pair 원본 출력: ${result.output.take(200)}")
                 if (BundledAdbRunner.isPairSuccess(result.output)) {
                     preferences.isPaired = true
                     preferences.lastHost = host

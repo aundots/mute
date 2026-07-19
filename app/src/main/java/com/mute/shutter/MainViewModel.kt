@@ -142,6 +142,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun applyMuteInternal(silent: Boolean) {
+        val pairPort = _uiState.value.pairPort.toIntOrNull()
+        val pin = _uiState.value.pin
+        val hasPairCreds = pairPort != null && pairPort in 1..65535 && pin.length == 6
+
+        // 페어링 코드+PIN을 새로 입력했으면, 이미 페어링됨 상태여도 다시 페어링한다.
+        // (소프트웨어 업데이트/재부팅으로 폰 쪽 페어링 신뢰가 풀리면 연결이 거부되기 때문)
+        if (!silent && hasPairCreds) {
+            DebugLogger.log("▶ 페어링 자격증명 입력됨 → 강제 재페어링 실행")
+            runFirstTimeSetup()
+            return
+        }
+
         if (!preferences.isPaired) {
             if (!silent) runFirstTimeSetup()
             return
@@ -168,10 +180,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
+        DebugLogger.log("▶ 페어링 시도 (127.0.0.1:$pairPort, PIN 6자리)")
         var pairError: String? = null
         when (val pair = adb.pair(ShutterConstants.LOCALHOST, pairPort, pin)) {
-            is AdbResult.Failure -> pairError = pair.message
+            is AdbResult.Failure -> {
+                pairError = pair.message
+                DebugLogger.logError("페어링 실패: ${pair.message} ${pair.detail}")
+            }
             is AdbResult.Success -> {
+                DebugLogger.logSuccess("페어링 성공")
                 preferences.lastHost = ShutterConstants.LOCALHOST
                 _uiState.update {
                     it.copy(isPaired = true, status = ConnectionStatus.PairedNotConnected)
