@@ -1,9 +1,9 @@
 package com.mute.shutter.camera
 
-import android.util.Log
 import com.mute.shutter.ShutterConstants
 import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.AdbSessionManager
+import com.mute.shutter.debug.DebugLogger
 
 /** 벨소리 무음 + 시스템/강제/알림/미디어 스트림 0. 읽기 실패해도 무음은 무조건 적용 */
 class CameraMuteController(private val adb: AdbSessionManager) {
@@ -30,8 +30,11 @@ class CameraMuteController(private val adb: AdbSessionManager) {
         var anyFailure: String? = null
         for (command in muteCommands()) {
             when (val result = adb.shell(command)) {
-                is AdbResult.Failure -> anyFailure = result.message
-                is AdbResult.Success -> Unit
+                is AdbResult.Failure -> {
+                    anyFailure = result.message
+                    DebugLogger.logError("$command → ${result.message}")
+                }
+                is AdbResult.Success -> DebugLogger.logSuccess("$command → OK")
             }
         }
 
@@ -78,12 +81,12 @@ class CameraMuteController(private val adb: AdbSessionManager) {
 
     private suspend fun logSettings() {
         when (val sys = adb.shell(AudioShellCommands.getSystemSettings())) {
-            is AdbResult.Success -> Log.d(TAG, "system key: ${sys.value.trim()}")
-            is AdbResult.Failure -> Log.d(TAG, "system key read failed")
+            is AdbResult.Success -> DebugLogger.logInfo("셔터키(system)", sys.value.trim())
+            is AdbResult.Failure -> DebugLogger.logError("셔터키(system) 읽기 실패")
         }
         when (val glb = adb.shell(AudioShellCommands.getGlobalSettings())) {
-            is AdbResult.Success -> Log.d(TAG, "global key: ${glb.value.trim()}")
-            is AdbResult.Failure -> Log.d(TAG, "global key read failed")
+            is AdbResult.Success -> DebugLogger.logInfo("셔터키(global)", glb.value.trim())
+            is AdbResult.Failure -> DebugLogger.logError("셔터키(global) 읽기 실패")
         }
     }
 
@@ -102,7 +105,6 @@ class CameraMuteController(private val adb: AdbSessionManager) {
     }
 
     companion object {
-        private const val TAG = "CameraMute"
         private val muteStreams = listOf(
             ShutterConstants.STREAM_SYSTEM,
             ShutterConstants.STREAM_SYSTEM_ENFORCED,

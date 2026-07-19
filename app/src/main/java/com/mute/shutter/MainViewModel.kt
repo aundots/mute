@@ -7,6 +7,7 @@ import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.DiscoveredEndpoints
 import com.mute.shutter.camera.CameraMuteService
 import com.mute.shutter.camera.UsageAccessHelper
+import com.mute.shutter.debug.DebugLogger
 import com.mute.shutter.shutter.ShutterSoundController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -191,8 +192,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val hintPort = _uiState.value.connectPort.toIntOrNull()
             ?: preferences.lastConnectPort.takeIf { it in 1..65535 }
 
+        DebugLogger.log("▶ ADB 연결 시도 (hintPort=$hintPort)")
         when (val connect = adb.connectAuto(hintPort)) {
             is AdbResult.Failure -> {
+                DebugLogger.logError("ADB 연결 실패: ${connect.message} ${connect.detail}")
                 if (handleAlreadyMuted()) {
                     finishMuted(silent)
                     return
@@ -213,7 +216,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 return
             }
-            is AdbResult.Success -> Unit
+            is AdbResult.Success -> DebugLogger.logSuccess("ADB 연결 성공")
         }
 
         when (val mute = shutter.mute()) {

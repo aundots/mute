@@ -1,11 +1,19 @@
 package com.mute.shutter.ui
 
-import androidx.compose.foundation.background
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,8 +31,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +49,8 @@ fun DebugLogScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
 ) {
-    val logs = DebugLogger.getLogs()
+    val context = LocalContext.current
+    var logs by remember { mutableStateOf(DebugLogger.getLogs()) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -52,70 +66,98 @@ fun DebugLogScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                )
+                ),
             )
-        }
+        },
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(16.dp),
         ) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0x1f000000)
-                )
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF101410)),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(12.dp)
+                        .horizontalScroll(rememberScrollState())
+                        .padding(12.dp),
                 ) {
                     Text(
-                        text = logs,
+                        text = logs.ifBlank { "로그가 아직 없습니다.\n카메라를 한 번 실행한 뒤 다시 열어보세요." },
                         fontFamily = FontFamily.Monospace,
                         fontSize = 10.sp,
-                        color = Color(0xff00ff00),
-                        modifier = Modifier.fillMaxWidth()
+                        color = Color(0xFF7CFC7C),
                     )
                 }
             }
 
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp)
+                    .padding(top = 12.dp),
             ) {
                 Button(
                     onClick = {
-                        // 클립보드 복사 기능은 Activity에서 구현
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("mute_debug_log", logs))
+                        Toast.makeText(context, "로그가 클립보드에 복사됐습니다", Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text("로그 복사")
                 }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, logs)
+                        }
+                        context.startActivity(Intent.createChooser(send, "로그 공유"))
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("로그 공유")
+                }
+            }
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+            ) {
                 OutlinedButton(
-                    onClick = { DebugLogger.clearLogs() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+                    onClick = { logs = DebugLogger.getLogs() },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("새로고침")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        DebugLogger.clearLogs()
+                        logs = DebugLogger.getLogs()
+                    },
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text("로그 초기화")
                 }
-
-                Text(
-                    text = "💡 로그를 복사한 후 개발자에게 공유하세요",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
             }
+
+            Text(
+                text = "💡 「로그 공유」로 메신저·메모 앱에 바로 보낼 수 있습니다",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
     }
 }

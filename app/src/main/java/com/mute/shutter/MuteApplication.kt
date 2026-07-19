@@ -4,6 +4,7 @@ import android.app.Application
 import com.mute.shutter.adb.AdbSessionManager
 import com.mute.shutter.ads.AdInitializer
 import com.mute.shutter.data.SessionPreferences
+import com.mute.shutter.debug.DebugLogger
 import com.mute.shutter.shutter.ShutterSoundController
 
 class MuteApplication : Application() {
@@ -18,6 +19,7 @@ class MuteApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        DebugLogger.init(this)
         if (BuildConfig.HAS_ADS) {
             AdInitializer.init(this)
         }

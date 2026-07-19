@@ -1,10 +1,10 @@
 package com.mute.shutter.shutter
 
-import android.util.Log
 import com.mute.shutter.ShutterConstants
 import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.AdbSessionManager
 import com.mute.shutter.data.SessionPreferences
+import com.mute.shutter.debug.DebugLogger
 
 class ShutterSoundController(
     private val adb: AdbSessionManager,
@@ -22,8 +22,12 @@ class ShutterSoundController(
             "settings put global com.sec.android.app.camera_shuttersound 0",
         )
 
+        DebugLogger.log("▶ 셔터음 설정 명령 실행 시작 (${commands.size}개)")
         for (command in commands) {
-            adb.shell(command)
+            when (val result = adb.shell(command)) {
+                is AdbResult.Success -> DebugLogger.logSuccess("$command → OK")
+                is AdbResult.Failure -> DebugLogger.logError("$command → 실패: ${result.message} ${result.detail}")
+            }
         }
 
         logSettings()
@@ -53,6 +57,7 @@ class ShutterSoundController(
     }
 
     private suspend fun logSettings() {
+        DebugLogger.log("▶ 설정 적용 결과 검증 (settings get)")
         listOf(
             "settings get system ${ShutterConstants.SETTINGS_KEY}",
             "settings get global ${ShutterConstants.SETTINGS_KEY}",
@@ -60,14 +65,13 @@ class ShutterSoundController(
             "settings get global camera_shutter_sound",
         ).forEach { cmd ->
             when (val result = adb.shell(cmd)) {
-                is AdbResult.Success -> Log.d(TAG, "$cmd = ${result.value.trim()}")
-                is AdbResult.Failure -> Log.d(TAG, "$cmd failed")
+                is AdbResult.Success -> DebugLogger.logInfo("확인", "$cmd = ${result.value.trim()}")
+                is AdbResult.Failure -> DebugLogger.logError("$cmd 읽기 실패: ${result.message}")
             }
         }
     }
 
     companion object {
-        private const val TAG = "ShutterSound"
         fun isMutedValue(raw: String): Boolean = raw.trim() == ShutterConstants.MUTED_VALUE
     }
 }
