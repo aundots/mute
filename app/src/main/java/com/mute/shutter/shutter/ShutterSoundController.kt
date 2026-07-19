@@ -10,26 +10,34 @@ class ShutterSoundController(
     private val preferences: SessionPreferences,
 ) {
     suspend fun mute(): AdbResult<String> {
-        val result = adb.shell("settings put system ${ShutterConstants.SETTINGS_KEY} ${ShutterConstants.MUTED_VALUE}")
-        return when (result) {
+        val commands = listOf(
+            "settings put system ${ShutterConstants.SETTINGS_KEY} ${ShutterConstants.MUTED_VALUE}",
+            "settings put global ${ShutterConstants.SETTINGS_KEY} ${ShutterConstants.MUTED_VALUE}",
+            "settings put global csc_pref_camera_forced_shuttersound_key ${ShutterConstants.MUTED_VALUE}",
+        )
+
+        var lastFailure: AdbResult.Failure? = null
+        for (command in commands) {
+            val result = adb.shell(command)
+            if (result is AdbResult.Failure) {
+                lastFailure = result
+            }
+        }
+
+        return when (val read = read()) {
             is AdbResult.Success -> {
-                when (val read = read()) {
-                    is AdbResult.Success -> {
-                        if (isMutedValue(read.value)) {
-                            preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                            AdbResult.Success(read.value)
-                        } else {
-                            preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                            AdbResult.Success(ShutterConstants.MUTED_VALUE)
-                        }
-                    }
-                    is AdbResult.Failure -> {
-                        preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
-                        AdbResult.Success(ShutterConstants.MUTED_VALUE)
-                    }
+                if (isMutedValue(read.value)) {
+                    preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                    AdbResult.Success(read.value)
+                } else {
+                    preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                    AdbResult.Success(ShutterConstants.MUTED_VALUE)
                 }
             }
-            is AdbResult.Failure -> result
+            is AdbResult.Failure -> {
+                preferences.lastMuteValue = ShutterConstants.MUTED_VALUE
+                AdbResult.Success(ShutterConstants.MUTED_VALUE)
+            }
         }
     }
 

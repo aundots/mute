@@ -51,7 +51,10 @@ class CameraMuteController(private val adb: AdbSessionManager) {
         when (savedRingerMode) {
             0 -> adb.shell(AudioShellCommands.setRingerModeSilent())
             1 -> adb.shell(AudioShellCommands.setRingerModeVibrate())
-            else -> adb.shell(AudioShellCommands.setRingerModeNormal())
+            else -> {
+                adb.shell(AudioShellCommands.setRingerModeNormal())
+                adb.shell("settings put secure sound_effects_enabled 1")
+            }
         }
         savedRingerMode = null
         muted = false
@@ -73,6 +76,8 @@ class CameraMuteController(private val adb: AdbSessionManager) {
 
     private fun muteCommands(): List<String> = buildList {
         add(AudioShellCommands.setRingerModeSilent())
+        add("settings put global csc_pref_camera_forced_shuttersound_key 0")
+        add("settings put secure sound_effects_enabled 0")
         for (stream in muteStreams) {
             add(AudioShellCommands.setStreamVolumeLegacy(stream, 0))
             add(AudioShellCommands.setStreamVolume(stream, 0))

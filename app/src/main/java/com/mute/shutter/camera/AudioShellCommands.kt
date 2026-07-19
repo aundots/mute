@@ -21,6 +21,11 @@ object AudioShellCommands {
     fun setStreamVolume(stream: Int, level: Int): String =
         "cmd media_session volume --stream $stream --set $level"
 
+    fun setRingerModeSilentForce(): String = "cmd audio set-ringer-mode silent force"
+
+    fun setStreamVolumeMute(stream: Int): String =
+        "cmd audio set-stream-volume $stream 0 0 force"
+
     fun parseVolumeOutput(output: String): Int? {
         val trimmed = output.trim()
         trimmed.toIntOrNull()?.let { return it }
