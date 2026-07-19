@@ -3,6 +3,7 @@ package com.mute.shutter.adb
 import android.content.Context
 import com.mute.shutter.ShutterConstants
 import com.mute.shutter.data.SessionPreferences
+import com.mute.shutter.debug.DebugLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -61,14 +62,24 @@ class AdbSessionManager(
 
     /** 저장/감지 IP·포트로 여러 host에 connect 시도. 이미 adb 연결돼 있으면 포트 없이 통과 */
     suspend fun connectAuto(hintPort: Int? = null): AdbResult<String> = withContext(Dispatchers.IO) {
-        probeExistingConnection()?.let { return@withContext AdbResult.Success(it) }
+        probeExistingConnection()?.let {
+            DebugLogger.logSuccess("기존 ADB 세션 재사용 (host=$it)")
+            return@withContext AdbResult.Success(it)
+        }
 
         val d = discoverAll()
+        DebugLogger.logInfo(
+            "포트 탐지 요약",
+            "hint=$hintPort discover=${d.connectPort}(${d.portSource}) saved=${preferences.lastConnectPort}",
+        )
         val port = hintPort?.takeIf { it in 1..65535 }
             ?: d.connectPort
             ?: preferences.lastConnectPort.takeIf { it in 1..65535 }
             ?: endpointReader.readConnectPortFromDumpsys()
-            ?: return@withContext AdbResult.Failure("연결 포트 없음")
+            ?: run {
+                DebugLogger.logError("모든 포트 탐지 방법 실패 (getprop/mdns/저장값/dumpsys 전부 null)")
+                return@withContext AdbResult.Failure("연결 포트 없음")
+            }
 
         if (port != preferences.lastConnectPort) {
             preferences.lastConnectPort = port

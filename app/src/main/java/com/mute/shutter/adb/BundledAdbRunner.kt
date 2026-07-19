@@ -1,7 +1,9 @@
 package com.mute.shutter.adb
 
 import android.content.Context
+import android.net.wifi.WifiManager
 import android.os.Build
+import com.mute.shutter.debug.DebugLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -49,8 +51,30 @@ class BundledAdbRunner(context: Context) {
 
     suspend fun discoverMdnsEndpoint(): MdnsEndpoint = withContext(Dispatchers.IO) {
         startServer()
-        val result = runAdb(listOf("mdns", "services"), timeoutSeconds = 12)
-        parseMdnsEndpoint(result.output)
+        val endpoint = withMulticastLock {
+            val result = runAdb(listOf("mdns", "services"), timeoutSeconds = 12)
+            DebugLogger.log("mdns services 원본 출력: ${result.output.take(300)}")
+            parseMdnsEndpoint(result.output)
+        }
+        DebugLogger.logInfo("mDNS 탐지 결과", "ip=${endpoint.ip} port=${endpoint.port}")
+        endpoint
+    }
+
+    /**
+     * CHANGE_WIFI_MULTICAST_STATE 권한만으로는 부족하고 실제 락을 잡아야
+     * 일부 기기/드라이버가 mDNS(멀티캐스트 UDP) 패킷을 필터링하지 않는다.
+     */
+    private fun <T> withMulticastLock(block: () -> T): T {
+        val wifi = appContext.applicationContext
+            .getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val lock = wifi?.createMulticastLock("mute_mdns_lock")
+        try {
+            lock?.setReferenceCounted(true)
+            lock?.acquire()
+            return block()
+        } finally {
+            if (lock?.isHeld == true) lock.release()
+        }
     }
 
     private fun parseConnectPort(output: String): Int? = parseMdnsEndpoint(output).port
