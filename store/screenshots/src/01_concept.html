@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>포트 두 개</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .cards{display:flex;flex-direction:column;gap:14px;margin-top:26px;}
+  .card{
+    border-radius:18px;padding:20px 22px 18px;
+    background:var(--surface);
+    border:2px solid var(--line);
+  }
+  .card.pairing{border-color:var(--pairing);}
+  .card.connect{border-color:var(--connect);}
+  .card .num{
+    font-size:13.5px;font-weight:700;
+    padding:4px 12px;border-radius:18px;
+    display:inline-block;margin-bottom:11px;
+  }
+  .card.pairing .num{background:var(--pairing-soft);color:var(--pairing);}
+  .card.connect .num{background:var(--connect-soft);color:var(--connect);}
+  .card h2{font-size:22px;font-weight:700;letter-spacing:-.01em;}
+  .card .when{font-size:14.5px;color:var(--ink-dim);margin-top:7px;line-height:1.5;}
+  .card .where{
+    font-size:13px;color:var(--ink-faint);
+    margin-top:13px;padding-top:12px;
+    border-top:1px solid var(--line);
+    line-height:1.45;
+  }
+</style>
+</head>
+<body>
+<div class="panel">
+  <p class="eyebrow">카메라 셔터음 끄기</p>
+  <h1>포트 <span class="accent">두 개</span>만<br>알면 됩니다</h1>
+  <p class="sub">폰 화면에 보이는 숫자를 앱에 그대로 옮겨 적으면 끝입니다.</p>
+
+  <div class="cards">
+    <div class="card pairing">
+      <span class="num">① 페어링 포트 + PIN</span>
+      <h2>최초 1회만</h2>
+      <p class="when">한 번 페어링하면 재부팅해도 유지됩니다.</p>
+      <p class="where">「페어링 코드로 기기 페어링」 팝업에서 확인</p>
+    </div>
+    <div class="card connect">
+      <span class="num">② 연결 포트</span>
+      <h2>재부팅하면 새 번호</h2>
+      <p class="when">소리가 다시 나면 이 번호만 바꿔 넣으면 됩니다.</p>
+      <p class="where">무선 디버깅 메인 화면 「IP 주소 및 포트」</p>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <p class="foot">두 숫자는 <strong>서로 다른 화면</strong>에 있습니다</p>
+</div>
+</body>
+</html>

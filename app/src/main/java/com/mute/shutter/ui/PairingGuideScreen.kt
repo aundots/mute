@@ -44,6 +44,7 @@ fun PairingGuideScreen(
     onOpenUsageAccess: () -> Unit,
     onOpenDndAccess: () -> Unit = {},
     onShowDebugLog: () -> Unit = {},
+    onShowSetupGuide: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -75,6 +76,12 @@ fun PairingGuideScreen(
 
         if (state.status != ConnectionStatus.Muted) {
             SetupGuideCard()
+            Button(
+                onClick = onShowSetupGuide,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("📖 그림으로 보는 설정 가이드")
+            }
         }
 
         if (state.status == ConnectionStatus.Muted) {
@@ -209,6 +216,13 @@ fun PairingGuideScreen(
                     Text("처음부터 다시 설정")
                 }
             }
+        }
+
+        TextButton(
+            onClick = onShowSetupGuide,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("📖 설정 가이드 다시 보기")
         }
 
         TextButton(

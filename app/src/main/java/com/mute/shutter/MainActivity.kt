@@ -26,6 +26,7 @@ import com.mute.shutter.camera.DndAccessHelper
 import com.mute.shutter.camera.UsageAccessHelper
 import com.mute.shutter.ui.DebugLogScreen
 import com.mute.shutter.ui.PairingGuideScreen
+import com.mute.shutter.ui.SetupGuideScreen
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -70,11 +71,17 @@ class MainActivity : ComponentActivity() {
                         .safeDrawingPadding(),
                 ) {
                     var showDebug by androidx.compose.runtime.remember { mutableStateOf(false) }
+                    var showGuide by androidx.compose.runtime.remember { mutableStateOf(false) }
 
                     if (showDebug) {
                         DebugLogScreen(
                             modifier = Modifier.fillMaxSize(),
                             onBack = { showDebug = false }
+                        )
+                    } else if (showGuide) {
+                        SetupGuideScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            onBack = { showGuide = false }
                         )
                     } else {
                         Column(modifier = Modifier.fillMaxSize()) {
@@ -91,6 +98,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleAdvanced = {
                                         viewModel.toggleAdvanced()
                                         showDebug = false
+                                        showGuide = false
                                     },
                                     onResetPairing = viewModel::resetPairing,
                                     onOpenUsageAccess = {
@@ -100,6 +108,7 @@ class MainActivity : ComponentActivity() {
                                         DndAccessHelper.openDndAccessSettings(this@MainActivity)
                                     },
                                     onShowDebugLog = { showDebug = true },
+                                    onShowSetupGuide = { showGuide = true },
                                 )
                             }
                             if (BuildConfig.HAS_ADS) {
