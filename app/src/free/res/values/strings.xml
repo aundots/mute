@@ -5,4 +5,7 @@
     <string name="admob_app_id">ca-app-pub-3585849238017368~4912762931</string>
     <string name="admob_banner_unit_id">ca-app-pub-3585849238017368/9350469889</string>
     <string name="admob_interstitial_unit_id">ca-app-pub-3585849238017368/5640279417</string>
+    <!-- TODO: AdMob 콘솔에서 '앱 오픈' 광고 단위를 만든 뒤 실제 ID로 교체하세요.
+         디버그 빌드는 이 값과 무관하게 구글 테스트 ID를 사용합니다(AdIds.kt). -->
+    <string name="admob_app_open_unit_id">ca-app-pub-3585849238017368/0000000000</string>
 </resources>

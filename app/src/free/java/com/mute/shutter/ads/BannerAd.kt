@@ -14,7 +14,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
-import com.mute.shutter.R
 
 @Composable
 fun BannerAd(modifier: Modifier = Modifier) {
@@ -27,13 +26,13 @@ fun BannerAd(modifier: Modifier = Modifier) {
         factory = { ctx ->
             AdView(ctx).apply {
                 setAdSize(AdSize.BANNER)
-                adUnitId = context.getString(R.string.admob_banner_unit_id)
+                adUnitId = AdIds.banner(context)
                 loadAd(AdRequest.Builder().build())
                 adViewRef.value = this
             }
         },
         update = { adView ->
-            adView.adUnitId = context.getString(R.string.admob_banner_unit_id)
+            adView.adUnitId = AdIds.banner(context)
         },
         onRelease = { adView ->
             adView.destroy()

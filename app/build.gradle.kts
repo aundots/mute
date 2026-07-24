@@ -18,10 +18,10 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 33
+        minSdk = 30
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.0.9-debug"
+        versionCode = 11
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += listOf("arm64-v8a")
@@ -120,4 +120,5 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     implementation("androidx.fragment:fragment-ktx:1.8.6")
     add("freeImplementation", libs.play.services.ads)
+    add("freeImplementation", libs.androidx.lifecycle.process)
 }

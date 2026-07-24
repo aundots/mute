@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.hardware.camera2.CameraManager
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
@@ -80,11 +81,17 @@ class CameraMuteService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(
-            NOTIFICATION_ID,
-            buildSilentNotification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-        )
+        // FOREGROUND_SERVICE_TYPE_SPECIAL_USE는 API 34에 도입됐다.
+        // minSdk 30을 위해 API 34 미만에서는 타입 없는 startForeground를 쓴다(30~33에서 유효).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildSilentNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, buildSilentNotification())
+        }
 
         (application as MuteApplication).preferences.watcherRunning = true
         registerCameraCallback()
