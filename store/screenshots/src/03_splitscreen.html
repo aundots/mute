@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>분할화면</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .phone{
+    margin:24px auto 0;
+    width:268px;
+    background:#000;
+    border-radius:32px;
+    padding:7px;
+  }
+  .inner{background:var(--surface);border-radius:28px;overflow:hidden;}
+
+  .pane{padding:14px 15px;}
+  .pane-tag{
+    font-size:11.5px;font-weight:700;letter-spacing:.06em;
+    padding:4px 10px;border-radius:14px;display:inline-block;margin-bottom:11px;
+  }
+  .pane-tag.top{background:var(--connect-soft);color:var(--connect);}
+  .pane-tag.bot{background:rgba(255,255,255,.08);color:var(--ink-dim);}
+
+  .mini{
+    background:var(--surface-2);border-radius:11px;
+    padding:10px 12px;margin-bottom:7px;
+  }
+  .mini:last-child{margin-bottom:0;}
+  .mini .l{font-size:10.5px;color:var(--ink-faint);margin-bottom:3px;}
+  .mini .v{font-family:var(--font-mono);font-size:14px;font-variant-numeric:tabular-nums;}
+  .mini .v mark{background:var(--connect-soft);color:var(--connect);padding:1px 5px;border-radius:5px;font-weight:700;}
+  .mini.amber{border:1.5px solid var(--pairing);}
+  .mini.amber .v{color:var(--pairing);font-weight:700;}
+  .mini.teal{border:1.5px solid var(--connect);}
+
+  .divider{
+    background:var(--surface-3);
+    padding:7px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  }
+  .grip{width:38px;height:4px;border-radius:3px;background:var(--ink-faint);margin:0 auto;}
+
+  .btn{
+    background:var(--connect);color:var(--connect-ink);
+    text-align:center;font-size:14px;font-weight:700;
+    padding:11px;border-radius:11px;margin-top:8px;
+  }
+  .arrow{
+    text-align:center;font-size:22px;color:var(--connect);
+    margin:2px 0 0;line-height:1;
+  }
+</style>
+</head>
+<body>
+<div class="panel">
+  <p class="eyebrow">한 화면에 나란히</p>
+  <h1>분할화면으로<br>보면서 입력</h1>
+
+  <div class="phone">
+    <div class="inner">
+      <div class="pane">
+        <span class="pane-tag top">위 · 무선 디버깅</span>
+        <div class="mini teal">
+          <p class="l">IP 주소 및 포트</p>
+          <p class="v">192.168.0.12:<mark>39281</mark></p>
+        </div>
+        <div class="mini amber">
+          <p class="l">페어링 코드 · 포트</p>
+          <p class="v">483210 · 41837</p>
+        </div>
+      </div>
+
+      <div class="divider"><div class="grip"></div></div>
+
+      <div class="pane">
+        <span class="pane-tag bot">아래 · 셔터음 끄기 앱</span>
+        <div class="mini amber">
+          <p class="l">① 페어링 포트 · PIN</p>
+          <p class="v">41837 · 483210</p>
+        </div>
+        <div class="mini teal">
+          <p class="l">② 연결 포트</p>
+          <p class="v">39281</p>
+        </div>
+        <div class="btn">다시 연결</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <p class="foot">화면을 오가지 않으니 <strong>잘못 옮길 일이 없습니다</strong></p>
+</div>
+</body>
+</html>
