@@ -37,7 +37,6 @@ fun PairingGuideScreen(
     onPairPortChange: (String) -> Unit,
     onPinChange: (String) -> Unit,
     onConnectPortChange: (String) -> Unit,
-    onWlanIpChange: (String) -> Unit,
     onApplyMute: () -> Unit,
     onToggleAdvanced: () -> Unit,
     onResetPairing: () -> Unit,
@@ -187,13 +186,6 @@ fun PairingGuideScreen(
 
         AnimatedVisibility(visible = state.showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = state.wlanIp,
-                    onValueChange = onWlanIpChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("IP (수동)") },
-                    singleLine = true,
-                )
                 if (state.status == ConnectionStatus.Muted) {
                     Text(
                         text = "연결 포트: 무선 디버깅 메인 화면 「IP 주소 및 포트」 값 (재부팅 시마다 바뀜)",

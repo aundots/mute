@@ -31,9 +31,8 @@ fun BannerAd(modifier: Modifier = Modifier) {
                 adViewRef.value = this
             }
         },
-        update = { adView ->
-            adView.adUnitId = AdIds.banner(context)
-        },
+        // adUnitId는 factory에서 한 번만 설정한다.
+        // AdView는 재설정 시 IllegalStateException을 던지므로 update에서 건드리면 안 된다.
         onRelease = { adView ->
             adView.destroy()
             if (adViewRef.value === adView) {

@@ -6,9 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.DiscoveredEndpoints
 import com.mute.shutter.camera.CameraMuteService
-import com.mute.shutter.camera.DndAccessHelper
 import com.mute.shutter.camera.UsageAccessHelper
 import com.mute.shutter.debug.DebugLogger
+import com.mute.shutter.shutter.ShutterDiagnostics
 import com.mute.shutter.shutter.ShutterSoundController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,7 +30,6 @@ enum class ConnectionStatus {
 data class MainUiState(
     val pairPort: String = "",
     val pin: String = "",
-    val wlanIp: String = "",
     val connectPort: String = "",
     val status: ConnectionStatus = ConnectionStatus.NotPaired,
     val isLoading: Boolean = false,
@@ -46,6 +45,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = muteApp.preferences
     private val adb = muteApp.adb
     private val shutter = muteApp.shutter
+    private val diagnostics = ShutterDiagnostics(adb)
     private val app = application.applicationContext
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -66,7 +66,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updatePairPort(v: String) = _uiState.update { it.copy(pairPort = v.filter(Char::isDigit)) }
     fun updatePin(v: String) = _uiState.update { it.copy(pin = v.filter(Char::isDigit).take(6)) }
-    fun updateWlanIp(v: String) = _uiState.update { it.copy(wlanIp = v.trim()) }
     fun updateConnectPort(v: String) = _uiState.update { it.copy(connectPort = v.filter(Char::isDigit)) }
     fun toggleAdvanced() = _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
 
@@ -114,10 +113,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 isPaired = preferences.isPaired,
-                wlanIp = preferences.lastHost.orEmpty(),
                 connectPort = preferences.lastConnectPort.takeIf { p -> p > 0 }?.toString().orEmpty(),
                 needsUsageAccess = preferences.isPaired && !UsageAccessHelper.hasUsageAccess(app),
-                needsDndAccess = !DndAccessHelper.hasDndAccess(app),
                 status = when {
                     preferences.lastMuteValue == ShutterConstants.MUTED_VALUE -> ConnectionStatus.Muted
                     preferences.isPaired -> ConnectionStatus.PairedNotConnected
@@ -131,7 +128,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 needsUsageAccess = preferences.isPaired && !UsageAccessHelper.hasUsageAccess(app),
-                needsDndAccess = !DndAccessHelper.hasDndAccess(app),
             )
         }
     }
@@ -176,7 +172,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isLoading = true,
                 statusMessage = app.getString(R.string.status_applying),
                 status = ConnectionStatus.Connected,
-                wlanIp = ShutterConstants.LOCALHOST,
             )
         }
 
@@ -210,8 +205,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
-        refreshEndpointsInternal()
-
         val hintPort = _uiState.value.connectPort.toIntOrNull()
             ?: preferences.lastConnectPort.takeIf { it in 1..65535 }
 
@@ -226,7 +219,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 failConnection(silent, priorError ?: app.getString(R.string.error_connect_failed))
                 return
             }
-            is AdbResult.Success -> DebugLogger.logSuccess("ADB 연결 성공")
+            is AdbResult.Success -> {
+                DebugLogger.logSuccess("ADB 연결 성공")
+                _uiState.update { it.copy(connectPort = preferences.lastConnectPort.toString()) }
+            }
         }
 
         when (val mute = shutter.mute()) {
@@ -241,6 +237,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             }
+        }
+
+        // 사용자가 직접 적용했을 때만 진단 덤프를 남긴다.
+        // "설정은 0으로 써졌는데도 소리가 나는" 경우가 핵심이라 성공/실패 모두 남겨야 한다.
+        // UI 상태를 먼저 갱신한 뒤 실행해 체감 지연을 줄인다.
+        if (!silent) {
+            diagnostics.dump()
         }
     }
 
@@ -309,7 +312,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun applyDiscoveredToUi(discovered: DiscoveredEndpoints) {
         _uiState.update { state ->
             state.copy(
-                wlanIp = discovered.ip ?: state.wlanIp,
                 connectPort = discovered.connectPort?.toString() ?: state.connectPort,
             )
         }

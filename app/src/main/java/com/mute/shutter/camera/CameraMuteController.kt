@@ -5,18 +5,26 @@ import com.mute.shutter.adb.AdbResult
 import com.mute.shutter.adb.AdbSessionManager
 import com.mute.shutter.debug.DebugLogger
 
-/** 벨소리 무음 + 시스템/강제/알림/미디어 스트림 0. 읽기 실패해도 무음은 무조건 적용 */
+/**
+ * ADB로 셔터음 설정 키 + 셔터 관련 스트림(SYSTEM/SYSTEM_ENFORCED)만 무음 처리.
+ *
+ * 벨소리 모드와 알림/벨/미디어 스트림은 절대 건드리지 않는다:
+ * - S26U(Android 16)에서 `cmd audio get-ringer-mode`가 빈 값을 줘 원래 모드를 잃고
+ *   NORMAL로 밀어버리는 사고가 났었다(사용자 무음/진동 해제).
+ * - 진동·무음 모드에서 알림/벨 음량을 읽으면 0이라 복구가 원래 음량을 0으로 덮어쓴다.
+ * 셔터음은 설정 키가 실제로 잠재운다(S26U에서 스트림7=15인데도 무음 확인).
+ */
 class CameraMuteController(private val adb: AdbSessionManager) {
-    private var savedRingerMode: Int? = null
+    private var savedSoundEffects: Int? = null
     private val savedVolumes = mutableMapOf<Int, Int>()
     private var muted = false
     var lastError: String? = null
         private set
 
     suspend fun muteForCamera(): AdbResult<Unit> {
-        if (savedRingerMode == null) {
-            when (val ringer = adb.shell(AudioShellCommands.getRingerMode())) {
-                is AdbResult.Success -> AudioShellCommands.parseRingerMode(ringer.value)?.let { savedRingerMode = it }
+        if (savedSoundEffects == null) {
+            when (val fx = adb.shell(AudioShellCommands.getSecureSettings())) {
+                is AdbResult.Success -> savedSoundEffects = fx.value.trim().toIntOrNull()
                 is AdbResult.Failure -> Unit
             }
         }
@@ -53,15 +61,9 @@ class CameraMuteController(private val adb: AdbSessionManager) {
         }
         savedVolumes.clear()
 
-        when (savedRingerMode) {
-            0 -> adb.shell(AudioShellCommands.setRingerModeSilent())
-            1 -> adb.shell(AudioShellCommands.setRingerModeVibrate())
-            else -> {
-                adb.shell(AudioShellCommands.setRingerModeNormal())
-                adb.shell("settings put secure sound_effects_enabled 1")
-            }
-        }
-        savedRingerMode = null
+        // 터치음은 원래 값으로만 되돌린다(무조건 1로 켜면 꺼둔 사용자에게 소리가 생김).
+        savedSoundEffects?.let { adb.shell("settings put secure sound_effects_enabled $it") }
+        savedSoundEffects = null
         muted = false
         return AdbResult.Success(Unit)
     }
@@ -91,7 +93,6 @@ class CameraMuteController(private val adb: AdbSessionManager) {
     }
 
     private fun muteCommands(): List<String> = buildList {
-        add(AudioShellCommands.setRingerModeSilent())
         add("settings put system ${ShutterConstants.SETTINGS_KEY} 0")
         add("settings put global ${ShutterConstants.SETTINGS_KEY} 0")
         add("settings put global csc_pref_camera_forced_shuttersound_key 0")
@@ -105,12 +106,10 @@ class CameraMuteController(private val adb: AdbSessionManager) {
     }
 
     companion object {
+        /** 셔터음 관련 스트림만. 알림/벨/미디어는 절대 포함하지 말 것(클래스 주석 참고) */
         private val muteStreams = listOf(
             ShutterConstants.STREAM_SYSTEM,
             ShutterConstants.STREAM_SYSTEM_ENFORCED,
-            ShutterConstants.STREAM_NOTIFICATION,
-            ShutterConstants.STREAM_RING,
-            ShutterConstants.STREAM_MUSIC,
         )
     }
 }

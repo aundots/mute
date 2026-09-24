@@ -93,7 +93,6 @@ class MainActivity : ComponentActivity() {
                                     onPairPortChange = viewModel::updatePairPort,
                                     onPinChange = viewModel::updatePin,
                                     onConnectPortChange = viewModel::updateConnectPort,
-                                    onWlanIpChange = viewModel::updateWlanIp,
                                     onApplyMute = { runWithNetworkPermission(viewModel::applyMute) },
                                     onToggleAdvanced = {
                                         viewModel.toggleAdvanced()
