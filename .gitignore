@@ -18,3 +18,10 @@ release/
 # Logs
 *.log
 debug-*.log
+
+# BEGIN private-backup-files
+/.claude/settings.local.json
+/keystore.properties
+/release/admob/app-ads.txt
+/release/upload-keystore.jks
+# END private-backup-files
