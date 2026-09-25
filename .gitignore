@@ -25,3 +25,8 @@ debug-*.log
 /release/admob/app-ads.txt
 /release/upload-keystore.jks
 # END private-backup-files
+
+# Hybrid runtime
+**/__pycache__/
+*.hybrid-restore-temp
+.backup-history/
