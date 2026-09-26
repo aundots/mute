@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>숫자 위치</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .screen{
+    margin-top:24px;
+    background:var(--surface);
+    border-radius:20px;
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .sc-title{
+    font-size:15.5px;font-weight:700;
+    padding:15px 18px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  .sc-body{padding:15px;display:flex;flex-direction:column;gap:12px;}
+
+  .row{
+    background:var(--surface-2);
+    border-radius:14px;padding:15px 17px;
+    border:2px solid transparent;
+  }
+  .row.hl-connect{border-color:var(--connect);background:var(--surface-2);}
+  .row .lab{font-size:12.5px;color:var(--ink-faint);margin-bottom:7px;}
+  .row .val{
+    font-family:var(--font-mono);
+    font-size:19px;font-variant-numeric:tabular-nums;
+    letter-spacing:.01em;
+  }
+  .row .val mark{
+    background:var(--connect-soft);color:var(--connect);
+    padding:2px 7px;border-radius:7px;font-weight:700;
+  }
+  .tag{
+    display:inline-block;margin-top:10px;
+    font-size:12px;font-weight:700;
+    padding:4px 11px;border-radius:14px;
+  }
+  .tag.connect{background:var(--connect-soft);color:var(--connect);}
+  .tag.pairing{background:var(--pairing-soft);color:var(--pairing);}
+
+  .popup{
+    background:var(--surface-3);
+    border-radius:14px;padding:15px 17px;
+    border:2px solid var(--pairing);
+  }
+  .popup .pt{font-size:14px;font-weight:700;margin-bottom:11px;}
+  .kv{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .kv:last-of-type{margin-bottom:0;}
+  .kv .k{font-size:12.5px;color:var(--ink-faint);}
+  .kv .v{
+    font-family:var(--font-mono);font-size:18px;font-weight:700;
+    color:var(--pairing);font-variant-numeric:tabular-nums;
+  }
+</style>
+</head>
+<body>
+<div class="panel">
+  <p class="eyebrow">설정 → 개발자 옵션 → 무선 디버깅</p>
+  <h1>숫자는 <span class="accent">여기</span>에<br>있습니다</h1>
+
+  <div class="screen">
+    <p class="sc-title">무선 디버깅</p>
+    <div class="sc-body">
+      <div class="row hl-connect">
+        <p class="lab">IP 주소 및 포트</p>
+        <p class="val">192.168.0.12:<mark>39281</mark></p>
+        <span class="tag connect">② 연결 포트 · 콜론(:) 뒤 숫자</span>
+      </div>
+
+      <div class="popup">
+        <p class="pt">페어링 코드로 기기 페어링</p>
+        <div class="kv"><span class="k">Wi-Fi 페어링 코드</span><span class="v">483210</span></div>
+        <div class="kv"><span class="k">포트</span><span class="v">41837</span></div>
+        <span class="tag pairing">① 페어링 포트 + PIN · 팝업 안</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <p class="foot">페어링 값은 <strong>팝업을 열어야</strong> 나타납니다</p>
+</div>
+</body>
+</html>

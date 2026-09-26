@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+**/build/
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+.DS_Store
+
+# Release signing — never commit
+keystore.properties
+release/
+*.jks
+*.keystore
+
+# Logs
+*.log
+debug-*.log
+
+# BEGIN private-backup-files
+/.claude/settings.local.json
+/keystore.properties
+/release/admob/app-ads.txt
+/release/upload-keystore.jks
+# END private-backup-files
+
+# Hybrid runtime
+**/__pycache__/
+*.hybrid-restore-temp
+.backup-history/

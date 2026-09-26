@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>권한 설정</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .perms{display:flex;flex-direction:column;gap:13px;margin-top:26px;}
+  .perm{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:18px 20px;
+  }
+  .perm h2{font-size:19px;font-weight:700;letter-spacing:-.01em;}
+  .perm .role{
+    font-size:11.5px;font-weight:700;letter-spacing:.06em;
+    color:var(--connect);margin-bottom:8px;
+  }
+  .perm p{font-size:14.5px;color:var(--ink-dim);line-height:1.55;margin-top:8px;}
+
+  .note{
+    margin-top:16px;
+    background:var(--surface);
+    border-left:4px solid var(--pairing);
+    border-radius:0 12px 12px 0;
+    padding:15px 17px;
+  }
+  .note p{font-size:14px;line-height:1.55;color:var(--ink-dim);}
+  .note strong{color:var(--pairing);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="panel">
+  <p class="eyebrow">마지막 단계</p>
+  <h1>권한 <span class="accent">두 가지</span>만<br>허용하면 끝</h1>
+
+  <div class="perms">
+    <div class="perm">
+      <p class="role">카메라 감지</p>
+      <h2>사용 통계 접근</h2>
+      <p>카메라 앱이 켜지는 순간을 감지해 자동으로 무음 처리합니다.</p>
+    </div>
+    <div class="perm">
+      <p class="role">벨소리 전환</p>
+      <h2>방해 금지 모드 접근</h2>
+      <p>벨소리를 무음 모드로 바꿉니다. 허용하지 않으면 벨소리 모드는 그대로 남습니다.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><strong>재부팅 후 소리가 다시 나면</strong> — 페어링은 유지됩니다. ② 연결 포트만 새 숫자로 바꿔 넣으세요.</p>
+  </div>
+
+  <div class="spacer"></div>
+  <p class="foot">앱 화면의 버튼으로 <strong>바로 이동</strong>할 수 있습니다</p>
+</div>
+</body>
+</html>
